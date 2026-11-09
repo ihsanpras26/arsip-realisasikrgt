@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arsip & Realisasi Anggaran Digital Kebun Raya Gunung Tidar</title>
+    <!-- SheetJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .sticky-col { position: sticky; left: 0; background: #fff; z-index: 10; }
+        .sticky-col-header { position: sticky; left: 0; background: #f1f5f9; z-index: 11; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                    <i class="fa-solid fa-tree text-xl text-emerald-300"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Arsip & Realisasi Anggaran <span class="text-indigo-300">Kebun Raya Gunung Tidar</span></h1>
+                    <p class="text-xs text-indigo-200 hidden sm:block">Pencarian, Monitoring & Realisasi Anggaran Keuangan</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="btnCopyReadOnly" onclick="copyReadOnlyLink()" title="Salin link khusus tampilan hanya-baca (Read Only)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-2 rounded-lg text-sm transition-all duration-200 shadow-sm flex items-center gap-2 border border-indigo-500">
+                    <i class="fa-solid fa-link"></i>
+                    <span class="hidden sm:inline">Link Tampil Saja</span>
+                </button>
+                
+                <button onclick="exportArsipToExcel()" title="Ekspor Data Arsip Belanja ke Excel" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3 py-2 rounded-lg text-sm transition-all duration-200 shadow-sm flex items-center gap-2 border border-emerald-500">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="hidden sm:inline">Ekspor Excel Arsip</span>
+                </button>
+
+                <button id="btnTambahArsip" onclick="openModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition-all duration-200 shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Tambah Arsip</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-4">
+            <button id="tabBtnArsip" onclick="switchTab('arsip')" class="py-3 px-4 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-box-archive"></i>
+                <span>Arsip Belanja Digital</span>
+            </button>
+            <button id="tabBtnRealisasi" onclick="switchTab('realisasi')" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Laporan Realisasi Anggaran</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Read Only Notification Banner -->
+    <div id="readOnlyBanner" class="hidden bg-amber-500 text-white text-xs py-2 px-4 text-center font-semibold shadow-inner flex items-center justify-center gap-2">
+        <i class="fa-solid fa-lock"></i>
+        <span>Mode Tampilan Hanya Lihat (Read-Only). Fitur penambahan, pengeditan, dan penghapusan data dinonaktifkan.</span>
+    </div>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        
+        <!-- SECTION 1: ARSIP BELANJA DIGITAL -->
+        <div id="sectionArsip">
+            <!-- Summary Cards / Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Arsip</p>
+                        <h3 id="statTotalArsip" class="text-xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Bruto</p>
+                        <h3 id="statTotalBruto" class="text-lg font-bold text-slate-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Pajak</p>
+                        <h3 id="statTotalPajak" class="text-lg font-bold text-rose-600 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-percent"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Netto</p>
+                        <h3 id="statTotalNetto" class="text-lg font-bold text-emerald-600 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Category Filter Summary Banner -->
+            <div id="categorySummaryBanner" class="hidden bg-indigo-900 text-white p-4 rounded-xl shadow-md mb-6 transition-all duration-300">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-700 text-indigo-200 text-xs px-2.5 py-0.5 rounded font-semibold uppercase">Total Kategori Belanja</span>
+                        </div>
+                        <h3 id="categorySummaryTitle" class="text-base font-bold mt-1 text-indigo-100">--</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-4 text-xs">
+                        <div class="bg-indigo-800/80 px-3 py-2 rounded-lg border border-indigo-700">
+                            <span class="text-indigo-300 block text-[10px]">TOTAL BRUTO</span>
+                            <span id="catTotalBruto" class="font-bold text-sm">Rp 0</span>
+                        </div>
+                        <div class="bg-indigo-800/80 px-3 py-2 rounded-lg border border-indigo-700">
+                            <span class="text-indigo-300 block text-[10px]">TOTAL PAJAK</span>
+                            <span id="catTotalPajak" class="font-bold text-sm text-rose-300">Rp 0</span>
+                        </div>
+                        <div class="bg-indigo-800/80 px-3 py-2 rounded-lg border border-indigo-700">
+                            <span class="text-indigo-300 block text-[10px]">TOTAL NETTO</span>
+                            <span id="catTotalNetto" class="font-bold text-sm text-emerald-300">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Control Panel -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 mb-6">
+                <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                    
+                    <!-- Search Bar -->
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                        </div>
+                        <input type="text" id="searchInput" oninput="filterData()" 
+                            placeholder="Cari kata kunci Kategori, Penyedia, Uraian, Nominal..." 
+                            class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Filters -->
+                    <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                        <select id="filterKategori" onchange="filterData()" class="bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-700 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64">
+                            <option value="">Semua Kategori Belanja</option>
+                        </select>
+
+                        <select id="filterPengajuan" onchange="filterData()" class="bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-700 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto">
+                            <option value="">Semua Pengajuan</option>
+                            <option value="Belanja Langsung (LS)">Belanja Langsung (LS)</option>
+                            <option value="Belanja Ganti Uang (GU)">Belanja Ganti Uang (GU)</option>
+                        </select>
+
+                        <select id="filterStatus" onchange="filterData()" class="bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-700 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto">
+                            <option value="">Semua Status SPJ</option>
+                            <option value="Selesai">SPJ Selesai</option>
+                            <option value="Belum Selesai">SPJ Belum Selesai</option>
+                        </select>
+
+                        <select id="filterStatusArsip" onchange="filterData()" class="bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-700 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto">
+                            <option value="">Semua Status Arsip</option>
+                            <option value="Lengkap">Arsip Lengkap</option>
+                            <option value="Belum Lengkap">Arsip Belum Lengkap</option>
+                        </select>
+
+                        <button onclick="resetFilters()" title="Reset Filter" class="p-2.5 border border-slate-300 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+                                <th class="py-3 px-3 text-center w-12">No</th>
+                                <th class="py-3 px-3">Kategori & Tgl Belanja</th>
+                                <th class="py-3 px-3">Penyedia / Merchant</th>
+                                <th class="py-3 px-3 text-right">Bruto (Rp)</th>
+                                <th class="py-3 px-3 text-right">Pajak (Rp)</th>
+                                <th class="py-3 px-3 text-right">Netto (Rp)</th>
+                                <th class="py-3 px-3 text-center">Status SPJ & Tgl Cair</th>
+                                <th class="py-3 px-3 text-center">Status Arsip</th>
+                                <th class="py-3 px-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Rows rendered via JavaScript -->
+                        </tbody>
+                        <tfoot id="archiveTableFooter" class="bg-slate-100/80 font-semibold border-t-2 border-slate-300 text-slate-800 text-xs">
+                            <tr>
+                                <td colspan="3" class="py-3 px-4 text-right uppercase tracking-wider">Total Rekapitulasi Data:</td>
+                                <td id="footTotalBruto" class="py-3 px-3 text-right font-bold text-slate-800">Rp 0</td>
+                                <td id="footTotalPajak" class="py-3 px-3 text-right font-bold text-rose-600">Rp 0</td>
+                                <td id="footTotalNetto" class="py-3 px-3 text-right font-bold text-emerald-600">Rp 0</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden text-center py-12 px-4">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h4 class="text-base font-semibold text-slate-700">Tidak ada arsip ditemukan</h4>
+                    <p class="text-xs text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau filter Anda.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: REALISASI ANGGARAN -->
+        <div id="sectionRealisasi" class="hidden">
+            <!-- Summary Stats Realisasi -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Pagu Anggaran</p>
+                        <h3 id="statTotalPagu" class="text-lg font-bold text-indigo-700 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-piggy-bank"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Realisasi Belanja</p>
+                        <h3 id="statTotalRealisasi" class="text-lg font-bold text-blue-600 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sisa Pagu Anggaran</p>
+                        <h3 id="statSisaPagu" class="text-lg font-bold text-emerald-600 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Persentase Realisasi</p>
+                        <h3 id="statPersenRealisasi" class="text-xl font-bold text-slate-800 mt-1">0.00%</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Realisasi Filter & Info Header -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-slate-800 text-base">Monitoring Realisasi Anggaran per Kategori Belanja</h3>
+                        
+                        <button onclick="exportRealisasiToExcel()" title="Ekspor Laporan Realisasi Anggaran ke Excel" class="text-xs bg-emerald-700 text-white hover:bg-emerald-800 px-3 py-1.5 rounded-lg transition-colors border border-emerald-600 flex items-center gap-1.5 font-medium shadow-sm">
+                            <i class="fa-solid fa-file-excel"></i> Ekspor Excel Realisasi
+                        </button>
+
+                        <button onclick="resetPaguDefault()" title="Reset Semua Pagu ke Standar" class="text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-1 rounded transition-colors border border-slate-300">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Reset Pagu
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-circle-info text-indigo-600 mr-1"></i>Realisasi bulanan otomatis mengelompokkan SPJ Selesai berdasarkan <strong>Bulan Tanggal Selesai / Cair SPJ</strong>.</p>
+                </div>
+                <div class="relative w-full sm:w-72">
+                    <input type="text" id="searchRealisasiInput" oninput="renderRealisasiTable()" placeholder="Cari kategori anggaran..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Table Realisasi Anggaran (Detailed Breakdown Jan - Des) -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
+                                <th class="py-3 px-3 text-center w-10 sticky-col-header">No</th>
+                                <th class="py-3 px-3 min-w-[280px] sticky-col-header">Kategori Belanja</th>
+                                <th class="py-3 px-3 text-right min-w-[120px] bg-indigo-50/50">Pagu Anggaran (Rp)</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Jan</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Feb</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Mar</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Apr</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Mei</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Jun</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Jul</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Agu</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Sep</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Okt</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Nov</th>
+                                <th class="py-3 px-3 text-right min-w-[90px]">Des</th>
+                                <th class="py-3 px-3 text-right min-w-[120px] bg-blue-50/50 font-bold">Total Realisasi (Rp)</th>
+                                <th class="py-3 px-3 text-right min-w-[120px] bg-emerald-50/50 font-bold">Sisa Pagu (Rp)</th>
+                                <th class="py-3 px-3 text-center min-w-[110px] font-bold">Prosentase (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="realisasiTableBody" class="divide-y divide-slate-100 text-xs">
+                            <!-- Populated via JS -->
+                        </tbody>
+                        <tfoot id="realisasiTableFooter" class="bg-slate-100 font-bold border-t-2 border-slate-300 text-slate-800 text-xs">
+                            <!-- Populated via JS -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <p>&copy; 2027 Arsip Belanja Digital Kebun Raya Gunung Tidar. Data tersimpan secara lokal di browser Anda.</p>
+    </footer>
+
+    <!-- Modal Form (Tambah / Edit Arsip) -->
+    <div id="archiveModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <!-- Modal Header -->
+            <div class="bg-indigo-700 text-white px-6 py-4 flex items-center justify-between">
+                <h3 id="modalTitle" class="text-base font-bold">Tambah Arsip Belanja Baru</h3>
+                <button onclick="closeModal()" class="text-indigo-200 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="archiveForm" onsubmit="saveArchive(event)" class="p-6 overflow-y-auto space-y-4 flex-grow">
+                <input type="hidden" id="editIndex" value="-1">
+
+                <!-- Upload & Scan Nota Section -->
+                <div class="p-4 bg-indigo-50/70 border border-indigo-200 rounded-xl">
+                    <label class="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i> Ekstrak Otomatis dari Foto Nota</span>
+                        <span class="text-[10px] text-indigo-500 font-normal">Format: JPG, PNG, WEBP</span>
+                    </label>
+                    
+                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                        <label class="w-full flex-1 flex flex-col items-center px-4 py-3 bg-white text-indigo-700 rounded-lg border border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50/50 cursor-pointer transition-all text-center">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl mb-1"></i>
+                            <span class="text-xs font-medium">Unggah Foto Nota / Kuitansi</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Sistem akan mengisi detail form otomatis</span>
+                            <input type="file" id="notaFileInput" accept="image/*" onchange="processNotaImage(event)" class="hidden" />
+                        </label>
+                        
+                        <div id="scanStatus" class="hidden w-full sm:w-48 bg-white border border-indigo-100 p-2.5 rounded-lg text-center flex flex-col items-center justify-center">
+                            <div id="scanSpinner" class="animate-spin text-indigo-600 text-lg mb-1">
+                                <i class="fa-solid fa-circle-notch"></i>
+                            </div>
+                            <span id="scanText" class="text-[11px] font-medium text-indigo-800">Menganalisis foto...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">1. Tanggal Belanja *</label>
+                        <input type="date" id="inputTanggal" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">2. Jenis Pengajuan *</label>
+                        <select id="inputPengajuan" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Belanja Langsung (LS)">Belanja Langsung (LS)</option>
+                            <option value="Belanja Ganti Uang (GU)">Belanja Ganti Uang (GU)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">3. Kategori Belanja *</label>
+                        <select id="inputKategori" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 4. Rincian Nilai Keuangan -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-calculator text-indigo-600"></i> 4. Rincian Nilai Keuangan
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nominal Bruto (Rp) * <span class="text-[10px] text-indigo-600 font-normal">(Otomatis dari Rincian Item)</span></label>
+                            <input type="number" id="inputNominal" min="0" placeholder="0" required readonly class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none bg-slate-100 font-bold text-slate-800 cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Potongan Pajak (Rp)</label>
+                            <input type="number" id="inputPajak" min="0" placeholder="0" oninput="calculateNetto()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-rose-600 font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nominal Netto (Rp)</label>
+                            <input type="number" id="inputNetto" min="0" placeholder="0" readonly class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-100 font-bold text-emerald-600 cursor-not-allowed">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">5. Penyedia / Merchant *</label>
+                        <input type="text" id="inputPenyedia" placeholder="Nama PT, CV, Toko, atau Merchant" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">6. Link File Digital</label>
+                        <input type="url" id="inputLink" placeholder="https://drive.google.com/..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- 7. Detail Belanja Section -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check text-indigo-600"></i> 7. Detail Belanja (Item Produk & Volume)
+                        </h4>
+                        <button type="button" onclick="addProductRow()" class="text-xs bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2.5 py-1 rounded font-medium transition-colors">
+                            <i class="fa-solid fa-plus mr-1"></i> Tambah Item
+                        </button>
+                    </div>
+
+                    <!-- Items Table Container -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden bg-white">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 text-slate-600 font-semibold border-b">
+                                <tr>
+                                    <th class="p-2">Nama Produk / Jasa</th>
+                                    <th class="p-2 w-20">Jumlah</th>
+                                    <th class="p-2 w-24">Volume/Satuan</th>
+                                    <th class="p-2 w-28 text-right">Harga Satuan</th>
+                                    <th class="p-2 w-28 text-right">Total Harga</th>
+                                    <th class="p-2 w-10 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="productItemsTable" class="divide-y divide-slate-100">
+                                <!-- Dynamic item rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-right text-xs font-semibold text-slate-700">
+                        Total Rincian Item: <span id="itemsSubtotalDisplay" class="text-indigo-700 font-bold">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- 8 & 9. Status SPJ & Status Arsip & Tanggal Selesai/Cair SPJ -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">8. Status SPJ *</label>
+                            <select id="inputStatus" required onchange="toggleTanggalCair()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="Selesai">Selesai</option>
+                                <option value="Belum Selesai">Belum Selesai</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Tgl Selesai / Cair SPJ <span id="reqCairBadge" class="text-rose-500 font-bold">*</span></label>
+                            <input type="date" id="inputTanggalCair" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Menentukan bulan realisasi LRA</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">9. Status Arsip *</label>
+                            <select id="inputStatusArsip" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="Lengkap">Lengkap</option>
+                                <option value="Belum Lengkap">Belum Lengkap</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="pt-4 border-t border-slate-200 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition-colors shadow-sm">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Detail View -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden">
+            <div class="bg-indigo-700 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="text-base font-bold">Detail Lengkap Arsip Belanja</h3>
+                <button onclick="closeDetailModal()" class="text-indigo-200 hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-sm max-h-[80vh] overflow-y-auto" id="detailContent">
+                <!-- Populated via JS -->
+            </div>
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 text-right">
+                <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg text-xs font-medium hover:bg-slate-700">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // List of all 40 Official Spending Categories with Pagu Anggaran
+        const KATEGORI_PAGU_MAP = {
+            "Belanja Insentif bagi KDH/WKDH atas Pemungutan Retribusi Jasa Usaha-Retribusi Pelayanan": 16900000,
+            "Belanja Bahan-Bahan Bangunan dan Konstruksi": 31477940,
+            "Belanja Bahan-Bahan Kimia": 2619200,
+            "Belanja Bahan-Bahan Bakar dan Pelumas": 7408800,
+            "Belanja Bahan-Bahan Baku": 796800,
+            "Belanja Bahan-Bahan/Bibit Tanaman": 10995000,
+            "Belanja Bahan-Isi Tabung Pemadam Kebakaran": 868200,
+            "Belanja Bahan-Isi Tabung Gas": 663200,
+            "Belanja Suku Cadang-Suku Cadang Alat Kedokteran": 2250000,
+            "Belanja Suku Cadang-Suku Cadang Alat Pertanian": 1710000,
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Tulis Kantor": 5613800,
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Kertas dan Cover": 889200,
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Bahan Komputer": 610800,
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Perabot Kantor": 7000000,
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Listrik": 12000000,
+            "Belanja Obat-Obatan-Obat": 1300000,
+            "Belanja Natura dan Pakan-Natura": 4021200,
+            "Belanja Natura dan Pakan-Pakan": 3000000,
+            "Belanja Makanan dan Minuman Rapat": 7200000,
+            "Belanja Makanan dan Minuman Jamuan Tamu": 450000,
+            "Belanja Makanan dan Minuman Aktivitas Lapangan": 6000000,
+            "Honorarium Narasumber atau Pembahas, Moderator, Pembawa Acara, dan Panitia": 4800000,
+            "Honorarium Tim Pelaksana Kegiatan dan Sekretariat Tim Pelaksana Kegiatan": 70500000,
+            "Belanja Jasa Tenaga Kesehatan": 19200000,
+            "Belanja Jasa Tenaga Penanganan Prasarana dan Sarana Umum": 10000000,
+            "Belanja Jasa Tenaga Ahli": 15958570,
+            "Belanja Jasa Tenaga Kebersihan": 361746000,
+            "Belanja Jasa Tenaga Keamanan (Penjaga Malam Kantor)": 76404000,
+            "Belanja Pembayaran Pajak, Bea, dan Perizinan": 576000,
+            "Belanja Lembur": 7920000,
+            "Belanja Iuran Jaminan Kesehatan bagi Non ASN": 21863475,
+            "Belanja Iuran Jaminan Kecelakaan Kerja bagi Non ASN": 1311750,
+            "Belanja Iuran Jaminan Kematian bagi Non ASN": 1639800,
+            "Belanja Sewa Alat Rumah Tangga Lainnya (Home Use)": 693000,
+            "Belanja Jasa Konsultansi Lainnya-Jasa Konsultansi Lingkungan": 0,
+            "Belanja Insentif bagi Pegawai Non ASN atas Pemungutan Retribusi Jasa Usaha-Tempat Rekreasi dan": 8287500,
+            "Belanja Jasa Kerja Sama Pemungutan Retribusi Jasa Usaha-Pelayanan Tempat Khusus Parkir": 40000000,
+            "Belanja Perjalanan Dinas Biasa": 2990000,
+            "Belanja Jasa yang Diberikan kepada Masyarakat": 35000000,
+            "Belanja Modal Jalan Kota": 1300000000
+        };
+
+        const KATEGORI_LIST = Object.keys(KATEGORI_PAGU_MAP);
+
+        // Initial Data Sample
+        const defaultData = [
+            {
+                tanggal: "2027-01-10",
+                tanggalCair: "2027-01-15",
+                pengajuan: "Belanja Langsung (LS)",
+                kategori: "Belanja Alat/Bahan untuk Kegiatan Kantor-Kertas dan Cover",
+                penyedia: "Toko Merdeka Jaya",
+                nominal: 850000,
+                pajak: 0,
+                netto: 850000,
+                status: "Selesai",
+                statusArsip: "Lengkap",
+                link: "https://drive.google.com",
+                items: [
+                    { nama: "Kertas HVS A4 80gr", jumlah: 10, volume: "Rim", harga: 60000, total: 600000 },
+                    { nama: "Cover Jilid Bening", jumlah: 5, volume: "Pack", harga: 50000, total: 250000 }
+                ]
+            },
+            {
+                tanggal: "2027-01-15",
+                tanggalCair: "2027-01-25",
+                pengajuan: "Belanja Langsung (LS)",
+                kategori: "Honorarium Narasumber atau Pembahas, Moderator, Pembawa Acara, dan Panitia",
+                penyedia: "Dr. Supriyanto, M.Si",
+                nominal: 4800000,
+                pajak: 240000,
+                netto: 4560000,
+                status: "Selesai",
+                statusArsip: "Lengkap",
+                link: "https://drive.google.com",
+                items: [
+                    { nama: "Honorarium Narasumber Utama", jumlah: 1, volume: "OK", harga: 4800000, total: 4800000 }
+                ]
+            },
+            {
+                tanggal: "2027-01-20",
+                tanggalCair: "",
+                pengajuan: "Belanja Ganti Uang (GU)",
+                kategori: "Belanja Makanan dan Minuman Rapat",
+                penyedia: "Catering Berkah Utama",
+                nominal: 2400000,
+                pajak: 48000,
+                netto: 2352000,
+                status: "Belum Selesai",
+                statusArsip: "Belum Lengkap",
+                link: "",
+                items: [
+                    { nama: "Nasi Kotak Ayam Bakar", jumlah: 40, volume: "Box", harga: 45000, total: 1800000 },
+                    { nama: "Snack Box Rapat", jumlah: 40, volume: "Box", harga: 15000, total: 600000 }
+                ]
+            },
+            {
+                tanggal: "2027-01-28",
+                tanggalCair: "2027-02-05",
+                pengajuan: "Belanja Ganti Uang (GU)",
+                kategori: "Belanja Bahan-Bahan Bakar dan Pelumas",
+                penyedia: "SPBU Pertamina 44.561",
+                nominal: 1250000,
+                pajak: 0,
+                netto: 1250000,
+                status: "Selesai",
+                statusArsip: "Lengkap",
+                link: "https://drive.google.com",
+                items: [
+                    { nama: "Pertamax Turbo", jumlah: 80, volume: "Liter", harga: 14000, total: 1120000 },
+                    { nama: "Oli Mesin 2T", jumlah: 2, volume: "Botol", harga: 65000, total: 130000 }
+                ]
+            }
+        ];
+
+        // Global State & Storage
+        let archives = [];
+        let isReadOnly = false;
+
+        function switchTab(tabName) {
+            const secArsip = document.getElementById("sectionArsip");
+            const secRealisasi = document.getElementById("sectionRealisasi");
+            const tabBtnArsip = document.getElementById("tabBtnArsip");
+            const tabBtnRealisasi = document.getElementById("tabBtnRealisasi");
+
+            if (tabName === "arsip") {
+                secArsip.classList.remove("hidden");
+                secRealisasi.classList.add("hidden");
+                tabBtnArsip.className = "py-3 px-4 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition-all";
+                tabBtnRealisasi.className = "py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all";
+            } else {
+                secArsip.classList.add("hidden");
+                secRealisasi.classList.remove("hidden");
+                tabBtnRealisasi.className = "py-3 px-4 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition-all";
+                tabBtnArsip.className = "py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all";
+                renderRealisasiTable();
+            }
+        }
+
+        function checkReadOnlyMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('viewOnly') === 'true') {
+                isReadOnly = true;
+                document.getElementById('readOnlyBanner').classList.remove('hidden');
+                document.getElementById('btnTambahArsip').classList.add('hidden');
+                document.getElementById('btnCopyReadOnly').classList.add('hidden');
+            }
+        }
+
+        function copyReadOnlyLink() {
+            const currentUrl = window.location.href.split('?')[0];
+            const readOnlyUrl = `${currentUrl}?viewOnly=true`;
+            
+            const tempInput = document.createElement("input");
+            tempInput.value = readOnlyUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            try {
+                document.execCommand('copy');
+                alert("Link Tampil Saja (Read-Only) berhasil disalin!\n\nAnda dapat membagikan link ini ke pengguna lain agar mereka hanya bisa melihat data tanpa mengedit.");
+            } catch (err) {
+                alert("Gagal menyalin link: " + readOnlyUrl);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function initData() {
+            checkReadOnlyMode();
+            populateCategoryDropdowns();
+            const storedData = localStorage.getItem("arsip_belanja_tidar");
+            if (storedData) {
+                try {
+                    archives = JSON.parse(storedData);
+                } catch (e) {
+                    archives = [...defaultData];
+                }
+            } else {
+                archives = [...defaultData];
+                saveToLocalStorage();
+            }
+            updateStats();
+            filterData();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem("arsip_belanja_tidar", JSON.stringify(archives));
+            renderRealisasiTable();
+        }
+
+        function populateCategoryDropdowns() {
+            const filterSelect = document.getElementById("filterKategori");
+            const inputSelect = document.getElementById("inputKategori");
+
+            filterSelect.innerHTML = '<option value="">Semua Kategori Belanja</option>';
+            inputSelect.innerHTML = '';
+
+            KATEGORI_LIST.forEach(kat => {
+                const optFilter = document.createElement("option");
+                optFilter.value = kat;
+                optFilter.textContent = kat;
+                filterSelect.appendChild(optFilter);
+
+                const optInput = document.createElement("option");
+                optInput.value = kat;
+                optInput.textContent = kat;
+                inputSelect.appendChild(optInput);
+            });
+        }
+
+        function calculateNetto() {
+            const bruto = Number(document.getElementById("inputNominal").value) || 0;
+            const pajak = Number(document.getElementById("inputPajak").value) || 0;
+            const netto = Math.max(0, bruto - pajak);
+            document.getElementById("inputNetto").value = netto;
+        }
+
+        function toggleTanggalCair() {
+            const statusVal = document.getElementById("inputStatus").value;
+            const tglCairInput = document.getElementById("inputTanggalCair");
+            const reqBadge = document.getElementById("reqCairBadge");
+
+            if (statusVal === "Selesai") {
+                tglCairInput.required = true;
+                reqBadge.classList.remove("hidden");
+                if (!tglCairInput.value) {
+                    tglCairInput.value = document.getElementById("inputTanggal").value || new Date().toISOString().split('T')[0];
+                }
+            } else {
+                tglCairInput.required = false;
+                reqBadge.classList.add("hidden");
+            }
+        }
+
+        // Product Items Dynamic Form Logic
+        function addProductRow(itemData = { nama: "", jumlah: 1, volume: "Unit", harga: 0, total: 0 }) {
+            const tbody = document.getElementById("productItemsTable");
+            const tr = document.createElement("tr");
+            tr.className = "product-row border-b border-slate-100";
+            
+            tr.innerHTML = `
+                <td class="p-1.5"><input type="text" class="item-nama w-full border border-slate-200 rounded px-2 py-1 text-xs" placeholder="Nama Barang/Jasa" value="${itemData.nama}" required></td>
+                <td class="p-1.5"><input type="number" min="1" class="item-jumlah w-full border border-slate-200 rounded px-2 py-1 text-xs text-center" value="${itemData.jumlah}" oninput="calcRowTotal(this)" required></td>
+                <td class="p-1.5"><input type="text" class="item-volume w-full border border-slate-200 rounded px-2 py-1 text-xs" placeholder="Pcs/Liter/Box" value="${itemData.volume}"></td>
+                <td class="p-1.5"><input type="number" min="0" class="item-harga w-full border border-slate-200 rounded px-2 py-1 text-xs text-right" placeholder="0" value="${itemData.harga}" oninput="calcRowTotal(this)" required></td>
+                <td class="p-1.5 text-right font-semibold text-slate-700 item-total-text px-2">${formatIDR(itemData.total || 0)}</td>
+                <td class="p-1.5 text-center">
+                    <button type="button" onclick="removeProductRow(this)" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            updateItemsSubtotal();
+        }
+
+        function removeProductRow(btn) {
+            const rows = document.querySelectorAll(".product-row");
+            if(rows.length > 1) {
+                btn.closest("tr").remove();
+                updateItemsSubtotal();
+            } else {
+                alert("Minimal harus ada 1 item produk!");
+            }
+        }
+
+        function calcRowTotal(inputEl) {
+            const row = inputEl.closest("tr");
+            const qty = Number(row.querySelector(".item-jumlah").value) || 0;
+            const price = Number(row.querySelector(".item-harga").value) || 0;
+            const total = qty * price;
+            row.querySelector(".item-total-text").textContent = formatIDR(total);
+            updateItemsSubtotal();
+        }
+
+        function updateItemsSubtotal() {
+            let grandTotal = 0;
+            document.querySelectorAll(".product-row").forEach(row => {
+                const qty = Number(row.querySelector(".item-jumlah").value) || 0;
+                const price = Number(row.querySelector(".item-harga").value) || 0;
+                grandTotal += (qty * price);
+            });
+            document.getElementById("itemsSubtotalDisplay").textContent = formatIDR(grandTotal);
+            
+            const brutoInput = document.getElementById("inputNominal");
+            brutoInput.value = grandTotal;
+            calculateNetto();
+        }
+
+        function getCollectedItems() {
+            const items = [];
+            document.querySelectorAll(".product-row").forEach(row => {
+                const nama = row.querySelector(".item-nama").value.trim();
+                const jumlah = Number(row.querySelector(".item-jumlah").value) || 1;
+                const volume = row.querySelector(".item-volume").value.trim() || "Unit";
+                const harga = Number(row.querySelector(".item-harga").value) || 0;
+                items.push({
+                    nama: nama,
+                    jumlah: jumlah,
+                    volume: volume,
+                    harga: harga,
+                    total: jumlah * harga
+                });
+            });
+            return items;
+        }
+
+        // Process Uploaded Receipt Image (OCR Simulation)
+        function processNotaImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const scanStatus = document.getElementById("scanStatus");
+            const scanSpinner = document.getElementById("scanSpinner");
+            const scanText = document.getElementById("scanText");
+
+            scanStatus.classList.remove("hidden");
+            scanSpinner.className = "animate-spin text-indigo-600 text-lg mb-1";
+            scanSpinner.innerHTML = '<i class="fa-solid fa-circle-notch"></i>';
+            scanText.textContent = "Menganalisis foto nota...";
+
+            setTimeout(() => {
+                const todayStr = new Date().toISOString().split("T")[0];
+                document.getElementById("inputTanggal").value = todayStr;
+                document.getElementById("inputTanggalCair").value = todayStr;
+                document.getElementById("inputKategori").value = "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Tulis Kantor";
+                document.getElementById("inputPenyedia").value = "Toko ATK Gunung Tidar";
+                document.getElementById("inputPengajuan").value = "Belanja Langsung (LS)";
+
+                // Populate extracted items
+                document.getElementById("productItemsTable").innerHTML = "";
+                addProductRow({ nama: "Kertas HVS A4", jumlah: 5, volume: "Rim", harga: 55000, total: 275000 });
+                addProductRow({ nama: "Tinta Printer Hitam", jumlah: 2, volume: "Botol", harga: 85000, total: 170000 });
+
+                document.getElementById("inputNominal").value = 445000;
+                document.getElementById("inputPajak").value = 0;
+                calculateNetto();
+
+                scanSpinner.className = "text-emerald-600 text-lg mb-1";
+                scanSpinner.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                scanText.textContent = "Berhasil Diekstrak!";
+
+                setTimeout(() => scanStatus.classList.add("hidden"), 2500);
+            }, 1200);
+        }
+
+        // Filter and Search Logic
+        function filterData() {
+            const query = document.getElementById("searchInput").value.toLowerCase().trim();
+            const filterKat = document.getElementById("filterKategori").value;
+            const filterPeng = document.getElementById("filterPengajuan").value;
+            const filterStat = document.getElementById("filterStatus").value;
+            const filterStatArsip = document.getElementById("filterStatusArsip").value;
+
+            document.getElementById("clearSearchBtn").classList.toggle("hidden", query === "");
+
+            const filtered = archives.filter(item => {
+                const matchQuery = !query || 
+                    item.kategori.toLowerCase().includes(query) ||
+                    item.penyedia.toLowerCase().includes(query) ||
+                    (item.pengajuan && item.pengajuan.toLowerCase().includes(query)) ||
+                    item.nominal.toString().includes(query) ||
+                    (item.netto && item.netto.toString().includes(query));
+
+                const matchKat = !filterKat || item.kategori === filterKat;
+                const matchPeng = !filterPeng || item.pengajuan === filterPeng;
+                const matchStat = !filterStat || item.status === filterStat;
+                const matchStatArsip = !filterStatArsip || (item.statusArsip || "Lengkap") === filterStatArsip;
+
+                return matchQuery && matchKat && matchPeng && matchStat && matchStatArsip;
+            });
+
+            // Update Dynamic Category Summary Banner
+            const banner = document.getElementById("categorySummaryBanner");
+            if (filterKat) {
+                const catItems = archives.filter(i => i.kategori === filterKat);
+                const cBruto = catItems.reduce((sum, i) => sum + Number(i.nominal || 0), 0);
+                const cPajak = catItems.reduce((sum, i) => sum + Number(i.pajak || 0), 0);
+                const cNetto = catItems.reduce((sum, i) => sum + Number(i.netto || 0), 0);
+
+                document.getElementById("categorySummaryTitle").textContent = filterKat;
+                document.getElementById("catTotalBruto").textContent = formatIDR(cBruto);
+                document.getElementById("catTotalPajak").textContent = formatIDR(cPajak);
+                document.getElementById("catTotalNetto").textContent = formatIDR(cNetto);
+                banner.classList.remove("hidden");
+            } else {
+                banner.classList.add("hidden");
+            }
+
+            renderTable(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("filterKategori").value = "";
+            document.getElementById("filterPengajuan").value = "";
+            document.getElementById("filterStatus").value = "";
+            document.getElementById("filterStatusArsip").value = "";
+            filterData();
+        }
+
+        function updateStats() {
+            document.getElementById("statTotalArsip").textContent = archives.length;
+            
+            const totalBruto = archives.reduce((acc, curr) => acc + Number(curr.nominal || 0), 0);
+            const totalPajak = archives.reduce((acc, curr) => acc + Number(curr.pajak || 0), 0);
+            const totalNetto = archives.reduce((acc, curr) => acc + Number(curr.netto || 0), 0);
+
+            document.getElementById("statTotalBruto").textContent = formatIDR(totalBruto);
+            document.getElementById("statTotalPajak").textContent = formatIDR(totalPajak);
+            document.getElementById("statTotalNetto").textContent = formatIDR(totalNetto);
+        }
+
+        function renderTable(dataList) {
+            const tbody = document.getElementById("archiveTableBody");
+            const emptyState = document.getElementById("emptyState");
+            tbody.innerHTML = "";
+
+            let sumBruto = 0;
+            let sumPajak = 0;
+            let sumNetto = 0;
+
+            if (dataList.length === 0) {
+                emptyState.classList.remove("hidden");
+            } else {
+                emptyState.classList.add("hidden");
+            }
+
+            dataList.forEach((item, index) => {
+                const originalIndex = archives.indexOf(item);
+                const brutoVal = Number(item.nominal || 0);
+                const pajakVal = Number(item.pajak || 0);
+                const nettoVal = Number(item.netto || (brutoVal - pajakVal));
+
+                sumBruto += brutoVal;
+                sumPajak += pajakVal;
+                sumNetto += nettoVal;
+
+                let statusBadge = item.status === "Selesai" 
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
+                    : "bg-amber-100 text-amber-800 border-amber-200";
+
+                let statusArsipBadge = (item.statusArsip || "Lengkap") === "Lengkap" 
+                    ? "bg-blue-100 text-blue-800 border-blue-200" 
+                    : "bg-rose-100 text-rose-800 border-rose-200";
+
+                let pengajuanBadge = (item.pengajuan || "Belanja Langsung (LS)").includes("LS")
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-purple-50 text-purple-700 border-purple-200";
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50/80 transition-colors border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-center font-medium text-slate-400 text-xs">${index + 1}</td>
+                    <td class="py-3 px-3 max-w-sm">
+                        <span class="inline-block bg-indigo-50 text-indigo-900 text-xs font-semibold px-2.5 py-1 rounded border border-indigo-100">${item.kategori}</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${pengajuanBadge}">${item.pengajuan || 'Belanja Langsung (LS)'}</span>
+                            <span class="text-[11px] text-slate-400"><i class="fa-regular fa-calendar mr-1"></i>Belanja: ${formatDate(item.tanggal)}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-3 font-semibold text-slate-700 text-xs">${item.penyedia}</td>
+                    <td class="py-3 px-3 text-right font-medium text-slate-800 text-xs">${formatIDR(brutoVal)}</td>
+                    <td class="py-3 px-3 text-right font-medium text-rose-600 text-xs">${pajakVal > 0 ? formatIDR(pajakVal) : '-'}</td>
+                    <td class="py-3 px-3 text-right font-bold text-emerald-700 text-xs">${formatIDR(nettoVal)}</td>
+                    <td class="py-3 px-3 text-center">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold border ${statusBadge}">${item.status}</span>
+                        ${item.status === 'Selesai' ? `<span class="block text-[10px] text-emerald-700 font-medium mt-1"><i class="fa-solid fa-circle-check text-[9px] mr-0.5"></i>Cair: ${formatDate(item.tanggalCair || item.tanggal)}</span>` : '<span class="block text-[10px] text-amber-600 italic mt-0.5">Belum Cair</span>'}
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold border ${statusArsipBadge}">${item.statusArsip || 'Lengkap'}</span>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <div class="flex items-center justify-center space-x-1">
+                            <button onclick="showDetail(${originalIndex})" title="Lihat Detail Belanja" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded transition-colors">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            ${!isReadOnly ? `
+                            <button onclick="editArchive(${originalIndex})" title="Edit Arsip" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded transition-colors">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteArchive(${originalIndex})" title="Hapus Arsip" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded transition-colors">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("footTotalBruto").textContent = formatIDR(sumBruto);
+            document.getElementById("footTotalPajak").textContent = formatIDR(sumPajak);
+            document.getElementById("footTotalNetto").textContent = formatIDR(sumNetto);
+        }
+
+        function getPaguMap() {
+            const stored = localStorage.getItem("custom_pagu_map_tidar");
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch(e) {}
+            }
+            return { ...KATEGORI_PAGU_MAP };
+        }
+
+        function savePaguMap(mapObj) {
+            localStorage.setItem("custom_pagu_map_tidar", JSON.stringify(mapObj));
+        }
+
+        function editPagu(kat) {
+            if (isReadOnly) return;
+            const currentPaguMap = getPaguMap();
+            const currentVal = currentPaguMap[kat] !== undefined ? currentPaguMap[kat] : (KATEGORI_PAGU_MAP[kat] || 0);
+            const newValStr = prompt(`Edit Nominal Pagu Anggaran untuk:\n"${kat}"`, currentVal);
+            if (newValStr !== null) {
+                const newVal = Number(newValStr);
+                if (!isNaN(newVal) && newVal >= 0) {
+                    currentPaguMap[kat] = newVal;
+                    savePaguMap(currentPaguMap);
+                    renderRealisasiTable();
+                } else {
+                    alert("Nominal pagu anggaran yang dimasukkan tidak valid!");
+                }
+            }
+        }
+
+        function resetPaguDefault() {
+            if (isReadOnly) return;
+            if (confirm("Apakah Anda yakin ingin mengembalikan seluruh nominal Pagu Anggaran ke nilai standar semula?")) {
+                localStorage.removeItem("custom_pagu_map_tidar");
+                renderRealisasiTable();
+            }
+        }
+
+        // REALISASI ANGGARAN RENDER LOGIC (SPJ Selesai -> Per Bulan Cair SPJ)
+        function renderRealisasiTable() {
+            const query = (document.getElementById("searchRealisasiInput")?.value || "").toLowerCase().trim();
+            const tbody = document.getElementById("realisasiTableBody");
+            const tfoot = document.getElementById("realisasiTableFooter");
+            if (!tbody) return;
+
+            tbody.innerHTML = "";
+
+            let grandPagu = 0;
+            let grandMonthly = Array(12).fill(0);
+            let grandRealisasi = 0;
+            let grandSisa = 0;
+
+            let rowNum = 1;
+
+            KATEGORI_LIST.forEach(kat => {
+                if (query && !kat.toLowerCase().includes(query)) return;
+
+                const paguMap = getPaguMap(); 
+                const pagu = paguMap[kat] !== undefined ? paguMap[kat] : (KATEGORI_PAGU_MAP[kat] || 0);
+                grandPagu += pagu;
+
+                // Monthly breakdown calculation based on TANGGAL SELESAI / CAIR SPJ for SPJ Selesai
+                const monthlyTotal = Array(12).fill(0);
+                
+                archives.forEach(arc => {
+                    // Hanya SPJ Selesai yang masuk hitungan realisasi LRA
+                    if (arc.kategori === kat && arc.status === "Selesai") {
+                        // Menggunakan tanggal cair/selesai SPJ, jika belum ada memakai tanggal belanja
+                        const dateTargetStr = arc.tanggalCair || arc.tanggal;
+                        if (dateTargetStr) {
+                            const dateObj = new Date(dateTargetStr);
+                            if (!isNaN(dateObj)) {
+                                const monthIdx = dateObj.getMonth(); // 0 - 11
+                                monthlyTotal[monthIdx] += Number(arc.nominal || 0);
+                            }
+                        }
+                    }
+                });
+
+                const totalKatRealisasi = monthlyTotal.reduce((a, b) => a + b, 0);
+                const sisaPagu = pagu - totalKatRealisasi;
+                const percent = pagu > 0 ? ((totalKatRealisasi / pagu) * 100).toFixed(2) : 0;
+
+                for (let i = 0; i < 12; i++) {
+                    grandMonthly[i] += monthlyTotal[i];
+                }
+                grandRealisasi += totalKatRealisasi;
+                grandSisa += sisaPagu;
+
+                let percentColor = "text-slate-700 bg-slate-100";
+                if (percent >= 100) percentColor = "text-rose-700 bg-rose-100";
+                else if (percent >= 75) percentColor = "text-amber-700 bg-amber-100";
+                else if (percent > 0) percentColor = "text-emerald-700 bg-emerald-100";
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100";
+                
+                let monthlyColsHtml = "";
+                for (let i = 0; i < 12; i++) {
+                    const mVal = monthlyTotal[i];
+                    monthlyColsHtml += `<td class="py-2.5 px-3 text-right ${mVal > 0 ? 'font-semibold text-slate-800' : 'text-slate-300'}">${mVal > 0 ? formatIDR(mVal) : '-'}</td>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-center text-slate-400 font-medium sticky-col">${rowNum++}</td>
+                    <td class="py-2.5 px-3 font-semibold text-slate-800 sticky-col">${kat}</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-indigo-900 bg-indigo-50/40 group relative">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <span>${formatIDR(pagu)}</span>
+                            ${!isReadOnly ? `<button onclick="editPagu('${kat.replace(/'/g, "\\'")}')" title="Edit Pagu" class="text-indigo-400 hover:text-indigo-700 p-0.5 rounded transition-colors"><i class="fa-solid fa-pen text-[10px]"></i></button>` : ''}
+                        </div>
+                    </td>
+                    ${monthlyColsHtml}
+                    <td class="py-2.5 px-3 text-right font-bold text-blue-700 bg-blue-50/40">${formatIDR(totalKatRealisasi)}</td>
+                    <td class="py-2.5 px-3 text-right font-bold ${sisaPagu < 0 ? 'text-rose-600' : 'text-emerald-700'} bg-emerald-50/40">${formatIDR(sisaPagu)}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <span class="inline-block px-2 py-0.5 rounded font-bold text-[11px] ${percentColor}">${percent}%</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update Footer
+            const grandPercent = grandPagu > 0 ? ((grandRealisasi / grandPagu) * 100).toFixed(2) : 0;
+            let footMonthlyColsHtml = "";
+            for (let i = 0; i < 12; i++) {
+                footMonthlyColsHtml += `<td class="py-3 px-3 text-right text-slate-800">${formatIDR(grandMonthly[i])}</td>`;
+            }
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td colspan="2" class="py-3 px-4 text-right uppercase tracking-wider sticky-col bg-slate-100">Total Keseluruhan Realisasi:</td>
+                    <td class="py-3 px-3 text-right font-bold text-indigo-900 bg-indigo-100/60">${formatIDR(grandPagu)}</td>
+                    ${footMonthlyColsHtml}
+                    <td class="py-3 px-3 text-right font-bold text-blue-800 bg-blue-100/60">${formatIDR(grandRealisasi)}</td>
+                    <td class="py-3 px-3 text-right font-bold text-emerald-800 bg-emerald-100/60">${formatIDR(grandSisa)}</td>
+                    <td class="py-3 px-3 text-center font-bold text-indigo-900 bg-slate-200">${grandPercent}%</td>
+                </tr>
+            `;
+
+            // Update Realisasi Summary Stats
+            document.getElementById("statTotalPagu").textContent = formatIDR(grandPagu);
+            document.getElementById("statTotalRealisasi").textContent = formatIDR(grandRealisasi);
+            document.getElementById("statSisaPagu").textContent = formatIDR(grandSisa);
+            document.getElementById("statPersenRealisasi").textContent = grandPercent + "%";
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return "-";
+            const parts = dateStr.split("-");
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+        }
+
+        function formatIDR(amount) {
+            return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
+        }
+
+        function clearSearch() {
+            document.getElementById("searchInput").value = "";
+            filterData();
+        }
+
+        function deleteArchive(index) {
+            if (confirm("Apakah Anda yakin ingin menghapus arsip belanja ini?")) {
+                archives.splice(index, 1);
+                saveToLocalStorage();
+                updateStats();
+                filterData();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById("archiveModal").classList.add("hidden");
+        }
+
+        function openModal(isEdit = false) {
+            document.getElementById("archiveModal").classList.remove("hidden");
+            document.getElementById("scanStatus").classList.add("hidden");
+            if(!isEdit) {
+                document.getElementById("modalTitle").textContent = "Tambah Arsip Belanja Baru";
+                document.getElementById("archiveForm").reset();
+                document.getElementById("editIndex").value = "-1";
+                const todayStr = new Date().toISOString().split('T')[0];
+                document.getElementById("inputTanggal").value = todayStr;
+                document.getElementById("inputTanggalCair").value = todayStr;
+                document.getElementById("inputPengajuan").value = "Belanja Langsung (LS)";
+                document.getElementById("inputStatus").value = "Selesai";
+                document.getElementById("productItemsTable").innerHTML = "";
+                addProductRow();
+                toggleTanggalCair();
+                calculateNetto();
+            }
+        }
+
+        function saveArchive(e) {
+            e.preventDefault();
+            const editIdx = parseInt(document.getElementById("editIndex").value);
+            const bruto = Number(document.getElementById("inputNominal").value) || 0;
+            const pajak = Number(document.getElementById("inputPajak").value) || 0;
+            const netto = Number(document.getElementById("inputNetto").value) || (bruto - pajak);
+            const statusVal = document.getElementById("inputStatus").value;
+
+            const record = {
+                tanggal: document.getElementById("inputTanggal").value,
+                tanggalCair: statusVal === "Selesai" ? document.getElementById("inputTanggalCair").value : "",
+                pengajuan: document.getElementById("inputPengajuan").value,
+                kategori: document.getElementById("inputKategori").value,
+                penyedia: document.getElementById("inputPenyedia").value.trim(),
+                nominal: bruto,
+                pajak: pajak,
+                netto: netto,
+                link: document.getElementById("inputLink").value.trim(),
+                items: getCollectedItems(),
+                status: statusVal,
+                statusArsip: document.getElementById("inputStatusArsip").value
+            };
+
+            if (editIdx >= 0) {
+                archives[editIdx] = record;
+            } else {
+                archives.unshift(record);
+            }
+
+            saveToLocalStorage();
+            updateStats();
+            filterData();
+            closeModal();
+        }
+
+        function editArchive(index) {
+            const item = archives[index];
+            document.getElementById("editIndex").value = index;
+            document.getElementById("modalTitle").textContent = "Edit Data Arsip Belanja";
+            
+            document.getElementById("inputTanggal").value = item.tanggal;
+            document.getElementById("inputTanggalCair").value = item.tanggalCair || (item.status === 'Selesai' ? item.tanggal : "");
+            document.getElementById("inputPengajuan").value = item.pengajuan || "Belanja Langsung (LS)";
+            document.getElementById("inputKategori").value = item.kategori;
+            document.getElementById("inputPenyedia").value = item.penyedia;
+            document.getElementById("inputNominal").value = item.nominal || 0;
+            document.getElementById("inputPajak").value = item.pajak || 0;
+            document.getElementById("inputNetto").value = item.netto || (item.nominal - (item.pajak || 0));
+            document.getElementById("inputLink").value = item.link || "";
+            document.getElementById("inputStatus").value = item.status;
+            document.getElementById("inputStatusArsip").value = item.statusArsip || "Lengkap";
+
+            toggleTanggalCair();
+
+            // Load Items
+            const tbody = document.getElementById("productItemsTable");
+            tbody.innerHTML = "";
+            if (item.items && item.items.length > 0) {
+                item.items.forEach(it => addProductRow(it));
+            } else {
+                addProductRow();
+            }
+
+            openModal(true);
+        }
+
+        function showDetail(index) {
+            const item = archives[index];
+            const content = document.getElementById("detailContent");
+            const bruto = Number(item.nominal || 0);
+            const pajak = Number(item.pajak || 0);
+            const netto = Number(item.netto || (bruto - pajak));
+
+            let itemsHtml = "";
+            if (item.items && item.items.length > 0) {
+                itemsHtml = `
+                    <table class="w-full text-xs text-left border mt-2">
+                        <thead class="bg-slate-100 font-semibold text-slate-700">
+                            <tr>
+                                <th class="p-2">Item Produk</th>
+                                <th class="p-2 text-center">Banyaknya / Vol</th>
+                                <th class="p-2 text-right">Harga Satuan</th>
+                                <th class="p-2 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            ${item.items.map(it => `
+                                <tr>
+                                    <td class="p-2 font-medium">${it.nama}</td>
+                                    <td class="p-2 text-center">${it.jumlah} ${it.volume}</td>
+                                    <td class="p-2 text-right">${formatIDR(it.harga)}</td>
+                                    <td class="p-2 text-right font-semibold">${formatIDR(it.total)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            content.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Kategori Belanja</span>
+                        <span class="text-xs bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded border border-blue-100">${item.pengajuan || 'Belanja Langsung (LS)'}</span>
+                    </div>
+                    <p class="font-bold text-sm text-indigo-900 bg-indigo-50 p-2 rounded border border-indigo-100">${item.kategori}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-xs text-slate-400">Tanggal Belanja:</span>
+                        <p class="font-medium text-slate-800">${formatDate(item.tanggal)}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Tanggal Selesai / Cair SPJ:</span>
+                        <p class="font-medium text-slate-800">${item.status === 'Selesai' ? formatDate(item.tanggalCair || item.tanggal) : '<span class="text-amber-600 italic">Belum Selesai/Cair</span>'}</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400">Penyedia / Merchant:</span>
+                    <p class="font-semibold text-slate-800">${item.penyedia}</p>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">Bruto (DPP):</span>
+                        <span class="font-semibold text-slate-800">${formatIDR(bruto)}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">Potongan Pajak:</span>
+                        <span class="font-semibold text-rose-600">-${formatIDR(pajak)}</span>
+                    </div>
+                    <div class="flex justify-between text-sm pt-1 border-t border-slate-200">
+                        <span class="font-bold text-slate-700">Netto:</span>
+                        <span class="font-bold text-emerald-600">${formatIDR(netto)}</span>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold">Rincian Produk & Volume:</span>
+                    ${itemsHtml || '<p class="text-xs text-slate-400 italic">Tidak ada rincian item.</p>'}
+                </div>
+                <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 mt-2">
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <span class="text-[11px] text-slate-400 block">Status SPJ:</span>
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${item.status === 'Selesai' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${item.status}</span>
+                        </div>
+                        <div>
+                            <span class="text-[11px] text-slate-400 block">Status Arsip:</span>
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${(item.statusArsip || 'Lengkap') === 'Lengkap' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800'}">${item.statusArsip || 'Lengkap'}</span>
+                        </div>
+                    </div>
+                    ${item.link ? `
+                        <a href="${item.link}" target="_blank" class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-medium text-xs border border-indigo-200">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> File Digital
+                        </a>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById("detailModal").classList.remove("hidden");
+        }
+
+        function closeDetailModal() {
+            document.getElementById("detailModal").classList.add("hidden");
+        }
+
+        // EXPORT TO EXCEL FUNCTIONS
+        function exportArsipToExcel() {
+            if (archives.length === 0) {
+                alert("Tidak ada data arsip untuk diekspor!");
+                return;
+            }
+
+            const exportData = archives.map((item, idx) => ({
+                "No": idx + 1,
+                "Tanggal Belanja": formatDate(item.tanggal),
+                "Tanggal Selesai / Cair SPJ": item.status === "Selesai" ? formatDate(item.tanggalCair || item.tanggal) : "Belum Cair",
+                "Jenis Pengajuan": item.pengajuan || "Belanja Langsung (LS)",
+                "Kategori Belanja": item.kategori,
+                "Penyedia / Merchant": item.penyedia,
+                "Nominal Bruto (Rp)": Number(item.nominal || 0),
+                "Potongan Pajak (Rp)": Number(item.pajak || 0),
+                "Nominal Netto (Rp)": Number(item.netto || (item.nominal - item.pajak)),
+                "Status SPJ": item.status,
+                "Status Arsip": item.statusArsip || "Lengkap",
+                "Link Digital": item.link || "-",
+                "Rincian Produk": (item.items || []).map(i => `${i.nama} (${i.jumlah} ${i.volume} @ Rp ${i.harga.toLocaleString('id-ID')})`).join("; ")
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Arsip Belanja");
+
+            const today = new Date().toISOString().split("T")[0];
+            XLSX.writeFile(workbook, `Arsip_Belanja_Digital_Kebun_Raya_Gunung_Tidar_${today}.xlsx`);
+        }
+
+        function exportRealisasiToExcel() {
+            const paguMap = getPaguMap();
+            const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+            
+            const exportRows = [];
+
+            KATEGORI_LIST.forEach((kat, idx) => {
+                const pagu = paguMap[kat] !== undefined ? paguMap[kat] : (KATEGORI_PAGU_MAP[kat] || 0);
+                const monthlyTotal = Array(12).fill(0);
+                
+                archives.forEach(arc => {
+                    if (arc.kategori === kat && arc.status === "Selesai") {
+                        const dateTargetStr = arc.tanggalCair || arc.tanggal;
+                        if (dateTargetStr) {
+                            const dateObj = new Date(dateTargetStr);
+                            if (!isNaN(dateObj)) {
+                                monthlyTotal[dateObj.getMonth()] += Number(arc.nominal || 0);
+                            }
+                        }
+                    }
+                });
+
+                const totalRealisasi = monthlyTotal.reduce((a, b) => a + b, 0);
+                const sisaPagu = pagu - totalRealisasi;
+                const percent = pagu > 0 ? Number(((totalRealisasi / pagu) * 100).toFixed(2)) : 0;
+
+                const rowObj = {
+                    "No": idx + 1,
+                    "Kategori Belanja": kat,
+                    "Pagu Anggaran (Rp)": pagu
+                };
+
+                months.forEach((m, mIdx) => {
+                    rowObj[m] = monthlyTotal[mIdx];
+                });
+
+                rowObj["Total Realisasi (Rp)"] = totalRealisasi;
+                rowObj["Sisa Pagu (Rp)"] = sisaPagu;
+                rowObj["Prosentase (%)"] = percent + "%";
+
+                exportRows.push(rowObj);
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportRows);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Realisasi Anggaran");
+
+            const today = new Date().toISOString().split("T")[0];
+            XLSX.writeFile(workbook, `Laporan_Realisasi_Anggaran_Kebun_Raya_Gunung_Tidar_${today}.xlsx`);
+        }
+
+        window.onload = function() {
+            initData();
+        };
+    </script>
+</body>
+</html>
