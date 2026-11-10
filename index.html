@@ -638,6 +638,7 @@
     <!-- Application Script Logic -->
     <script>
         const KATEGORI_PAGU_MAP = {
+            "Belanja Insentif bagi KDH/WKDH atas Pemungutan Retribusi Jasa Usaha-Retribusi Pelayanan": 16900000,
             "Belanja Bahan-Bahan Bangunan dan Konstruksi": 31477940,
             "Belanja Bahan-Bahan Kimia": 2619200,
             "Belanja Bahan-Bahan Bakar dan Pelumas": 7408800,
@@ -654,12 +655,55 @@
             "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Listrik": 12000000,
             "Belanja Obat-Obatan-Obat": 1300000,
             "Belanja Natura dan Pakan-Natura": 4021200,
-            "Belanja Natura dan Pakan-Pakan": 3000000
+            "Belanja Natura dan Pakan-Pakan": 3000000,
+            "Belanja Makanan dan Minuman Rapat": 7200000,
+            "Belanja Makanan dan Minuman Jamuan Tamu": 450000,
+            "Belanja Makanan dan Minuman Aktivitas Lapangan": 6000000,
+            "Honorarium Narasumber atau Pembahas, Moderator, Pembawa Acara, dan Panitia": 4800000,
+            "Honorarium Tim Pelaksana Kegiatan dan Sekretariat Tim Pelaksana Kegiatan": 70500000,
+            "Belanja Jasa Tenaga Kesehatan": 19200000,
+            "Belanja Jasa Tenaga Penanganan Prasarana dan Sarana Umum": 10000000,
+            "Belanja Jasa Tenaga Ahli": 15958570,
+            "Belanja Jasa Tenaga Kebersihan": 361746000,
+            "Belanja Jasa Tenaga Keamanan (Penjaga Malam Kantor)": 76404000,
+            "Belanja Pembayaran Pajak, Bea, dan Perizinan": 576000,
+            "Belanja Lembur": 7920000,
+            "Belanja Iuran Jaminan Kesehatan bagi Non ASN": 21863475,
+            "Belanja Iuran Jaminan Kecelakaan Kerja bagi Non ASN": 1311750,
+            "Belanja Iuran Jaminan Kematian bagi Non ASN": 1639800,
+            "Belanja Sewa Alat Rumah Tangga Lainnya (Home Use)": 693000,
+            "Belanja Jasa Konsultansi Lainnya-Jasa Konsultansi Lingkungan": 0,
+            "Belanja Insentif bagi Pegawai Non ASN atas Pemungutan Retribusi Jasa Usaha-Tempat Rekreasi dan": 8287500,
+            "Belanja Jasa Kerja Sama Pemungutan Retribusi Jasa Usaha-Pelayanan Tempat Khusus Parkir": 40000000,
+            "Belanja Perjalanan Dinas Biasa": 2990000,
+            "Belanja Jasa yang Diberikan kepada Masyarakat": 35000000,
+            "Belanja Modal Jalan Kota": 1300000000
         };
 
         const KATEGORI_LIST = Object.keys(KATEGORI_PAGU_MAP);
 
-        // Kategori lama yang masih ada di data tetap ikut tampil di laporan/stok/filter
+        // Khusus dropdown menu Belanja Per Kategori & Stok (kategori yang punya barang fisik)
+        const KATEGORI_STOK_LIST = [
+            "Belanja Bahan-Bahan Bangunan dan Konstruksi",
+            "Belanja Bahan-Bahan Kimia",
+            "Belanja Bahan-Bahan Bakar dan Pelumas",
+            "Belanja Bahan-Bahan Baku",
+            "Belanja Bahan-Bahan/Bibit Tanaman",
+            "Belanja Bahan-Isi Tabung Pemadam Kebakaran",
+            "Belanja Bahan-Isi Tabung Gas",
+            "Belanja Suku Cadang-Suku Cadang Alat Kedokteran",
+            "Belanja Suku Cadang-Suku Cadang Alat Pertanian",
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Tulis Kantor",
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Kertas dan Cover",
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Bahan Komputer",
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Perabot Kantor",
+            "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Listrik",
+            "Belanja Obat-Obatan-Obat",
+            "Belanja Natura dan Pakan-Natura",
+            "Belanja Natura dan Pakan-Pakan"
+        ];
+
+        // Kategori di luar daftar utama yang masih ada di data tetap ikut tampil di laporan/stok/filter
         function getDisplayKategoriList() {
             const extra = [];
             archives.forEach(a => {
@@ -669,6 +713,7 @@
         }
 
         const SATUAN_KATEGORI_MAP = {
+            "Belanja Insentif bagi KDH/WKDH atas Pemungutan Retribusi Jasa Usaha-Retribusi Pelayanan": ["Kegiatan", "Bulan", "Paket"],
             "Belanja Bahan-Bahan Bangunan dan Konstruksi": ["M3", "M2", "Sak", "Batang", "Kg"],
             "Belanja Bahan-Bahan Kimia": ["Liter", "Kg", "Jerigen", "Botol", "Drum"],
             "Belanja Bahan-Bahan Bakar dan Pelumas": ["Liter", "Drum", "Galon"],
@@ -685,7 +730,29 @@
             "Belanja Alat/Bahan untuk Kegiatan Kantor-Alat Listrik": ["Buah", "Roll", "Set", "Meter"],
             "Belanja Obat-Obatan": ["Strip", "Botol", "Box", "Tablet", "Ampul", "Tube"],
             "Belanja Natura dan Pakan-Natura": ["Kg", "Karung", "Pack"],
-            "Belanja Natura dan Pakan-Pakan": ["Kg", "Zak", "Karung"]
+            "Belanja Natura dan Pakan-Pakan": ["Kg", "Zak", "Karung"],
+            "Belanja Makanan dan Minuman Rapat": ["Dus", "Box"],
+            "Belanja Makanan dan Minuman Jamuan Tamu": ["Dus", "Box"],
+            "Belanja Makanan dan Minuman Aktivitas Lapangan": ["Dus", "Box"],
+            "Honorarium Narasumber atau Pembahas, Moderator, Pembawa Acara, dan Panitia": ["OJ", "OK", "OB", "OP"],
+            "Honorarium Tim Pelaksana Kegiatan dan Sekretariat Tim Pelaksana Kegiatan": ["OB"],
+            "Belanja Jasa Tenaga Kesehatan": ["OB", "OH"],
+            "Belanja Jasa Tenaga Penanganan Prasarana dan Sarana Umum": ["OB"],
+            "Belanja Jasa Tenaga Ahli": ["OB", "OH", "Paket"],
+            "Belanja Jasa Tenaga Kebersihan": ["OB"],
+            "Belanja Jasa Tenaga Keamanan (Penjaga Malam Kantor)": ["OB"],
+            "Belanja Pembayaran Pajak, Bea, dan Perizinan": ["Paket", "Dokumen", "Kegiatan"],
+            "Belanja Lembur": ["OJ", "OH"],
+            "Belanja Iuran Jaminan Kesehatan bagi Non ASN": ["OB", "Jiwa"],
+            "Belanja Iuran Jaminan Kecelakaan Kerja bagi Non ASN": ["OB", "Jiwa"],
+            "Belanja Iuran Jaminan Kematian bagi Non ASN": ["OB", "Jiwa"],
+            "Belanja Sewa Alat Rumah Tangga Lainnya (Home Use)": ["Unit", "Bulan", "Hari", "Paket"],
+            "Belanja Jasa Konsultansi Lainnya-Jasa Konsultansi Lingkungan": ["Laporan", "Dokumen", "Paket"],
+            "Belanja Insentif bagi Pegawai Non ASN atas Pemungutan Retribusi Jasa Usaha-Tempat Rekreasi dan": ["Kegiatan", "Bulan", "Paket"],
+            "Belanja Jasa Kerja Sama Pemungutan Retribusi Jasa Usaha-Pelayanan Tempat Khusus Parkir": ["Kegiatan", "Bulan", "Paket"],
+            "Belanja Perjalanan Dinas Biasa": ["OH", "Kali", "Paket"],
+            "Belanja Jasa yang Diberikan kepada Masyarakat": ["Paket", "Orang", "Kelompok"],
+            "Belanja Modal Jalan Kota": ["Km", "M2", "Paket"]
         };
 
         const defaultData = [
@@ -813,7 +880,7 @@
             document.getElementById("loginOverlay").classList.add("hidden");
             document.getElementById("userInfoBadge").classList.remove("hidden");
             document.getElementById("userDisplayName").textContent = session.name;
-            document.getElementById("userRoleBadge").textContent = session.role === "admin" ? "Administrator" : "Viewer (Tampil Saja)";
+            document.getElementById("userRoleBadge").textContent = session.role === "admin" ? "Administrator" : "Viewer";
 
             if (session.role === "viewer") {
                 isReadOnly = true;
@@ -930,7 +997,7 @@
             if (!container) return;
 
             if (selectStok.options.length <= 1) {
-                getDisplayKategoriList().forEach(kat => {
+                KATEGORI_STOK_LIST.forEach(kat => {
                     const opt = document.createElement("option");
                     opt.value = kat;
                     opt.textContent = kat;
