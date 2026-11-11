@@ -561,29 +561,6 @@
                                 <!-- Dynamic item rows -->
                             </tbody>
                         </table>
-                        <datalist id="satuanDatalist">
-                            <option value="Unit"></option>
-                            <option value="Pcs"></option>
-                            <option value="Buah"></option>
-                            <option value="Paket"></option>
-                            <option value="Liter"></option>
-                            <option value="Kg"></option>
-                            <option value="Botol"></option>
-                            <option value="Rim"></option>
-                            <option value="Dus"></option>
-                            <option value="Pak"></option>
-                            <option value="Kegiatan"></option>
-                            <option value="Bulan"></option>
-                            <option value="Orang"></option>
-                            <option value="M3"></option>
-                            <option value="M2"></option>
-                            <option value="Sak"></option>
-                            <option value="Batang"></option>
-                            <option value="Roll"></option>
-                            <option value="Meter"></option>
-                            <option value="Lembar"></option>
-                            <option value="Set"></option>
-                        </datalist>
                     </div>
                     <div class="text-right text-xs font-semibold text-slate-700">
                         Total Rincian Item: <span id="itemsSubtotalDisplay" class="text-pastel-dark font-bold">Rp 0</span>
@@ -1339,7 +1316,6 @@
                 optInput.textContent = kat;
                 inputSelect.appendChild(optInput);
             });
-            inputSelect.onchange = updateAllRowUnits;
         }
 
         function calculateNetto() {
@@ -1366,21 +1342,6 @@
             }
         }
 
-        function getAvailableUnits() {
-            const kat = document.getElementById("inputKategori").value;
-            let units = SATUAN_KATEGORI_MAP[kat] || ["Unit", "Pcs", "Buah", "Paket", "Kg", "Liter", "Botol", "Rim", "Dus", "Pak", "Kegiatan", "Bulan", "M3", "M2", "Sak", "Batang", "Roll", "Meter", "Lembar", "Set"];
-            return units;
-        }
-
-        function updateAllRowUnits() {
-            // Volume / satuan diketik langsung oleh user, opsi datalist disesuaikan dengan kategori
-            const dl = document.getElementById("satuanDatalist");
-            if (dl) {
-                const units = getAvailableUnits();
-                dl.innerHTML = units.map(u => `<option value="${u}"></option>`).join("");
-            }
-        }
-
         function addProductRow(itemData = { nama: "", jumlah: 1, volume: "", harga: 0, total: 0 }) {
             const tbody = document.getElementById("productItemsTable");
             const tr = document.createElement("tr");
@@ -1392,7 +1353,7 @@
                 <td class="p-1.5"><input type="text" class="item-nama w-full border border-slate-200 rounded px-2 py-1 text-xs" placeholder="Nama Barang/Jasa" value="${itemData.nama || ''}" required></td>
                 <td class="p-1.5"><input type="number" min="1" class="item-jumlah w-full border border-slate-200 rounded px-2 py-1 text-xs text-center" value="${itemData.jumlah || 1}" oninput="calcRowTotal(this)" required></td>
                 <td class="p-1.5">
-                    <input type="text" class="item-volume w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-pastel-emerald outline-none" placeholder="Ketik Satuan (Pcs, Unit, dll)" value="${volValue}" list="satuanDatalist" required>
+                    <input type="text" class="item-volume w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-pastel-emerald outline-none" placeholder="Satuan (Unit, Pcs, dll)" value="${volValue}" required>
                 </td>
                 <td class="p-1.5"><input type="number" min="0" class="item-harga w-full border border-slate-200 rounded px-2 py-1 text-xs text-right" placeholder="0" value="${itemData.harga || 0}" oninput="calcRowTotal(this)" required></td>
                 <td class="p-1.5 text-right font-semibold text-slate-700 item-total-text px-2">${formatIDR(itemData.total || 0)}</td>
