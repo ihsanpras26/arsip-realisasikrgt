@@ -110,7 +110,7 @@
                     <i class="fa-solid fa-circle-user text-pastel-light text-sm"></i>
                     <div class="text-left">
                         <span id="userDisplayName" class="font-bold block text-white leading-tight">--</span>
-                        <span id="userRoleBadge" class="text-[10px] text-pastel-light block uppercase leading-none">--</span>
+                        <span id="userRoleBadge" class="hidden text-[10px] text-pastel-light block uppercase leading-none"></span>
                     </div>
                 </div>
 
@@ -852,11 +852,11 @@
         let isReadOnly = false;
 
         const DEFAULT_USERS = [
-            { nip: "199810092025212003", username: "199810092025212003", password: "siyapp", name: "Arvita Oktaviana", role: "viewers", jabatan: "Viewer / Monitoring" },
-            { nip: "199507132025211052", username: "199507132025211052", password: "siyapp", name: "Wisnu Dwi Yulianto", role: "viewers", jabatan: "Viewer / Monitoring" },
-            { nip: "199409302022032004", username: "199409302022032004", password: "siyapp", name: "Ika Pratiwi", role: "viewers", jabatan: "Viewer / Monitoring" },
-            { nip: "200110262025211011", username: "200110262025211011", password: "siyapp", name: "Ihsan Prasetya", role: "viewers", jabatan: "Viewer / Monitoring" },
-            { nip: "19980130 2022031002", username: "199801302022031002", password: "siyapp", name: "Satrio Agung", role: "viewers", jabatan: "Viewer / Monitoring" },
+            { nip: "199810092025212003", username: "199810092025212003", password: "siyapp", name: "Arvita Oktaviana", role: "viewers", jabatan: "" },
+            { nip: "199507132025211052", username: "199507132025211052", password: "siyapp", name: "Wisnu Dwi Yulianto", role: "viewers", jabatan: "" },
+            { nip: "199409302022032004", username: "199409302022032004", password: "siyapp", name: "Ika Pratiwi", role: "viewers", jabatan: "" },
+            { nip: "200110262025211011", username: "200110262025211011", password: "siyapp", name: "Ihsan Prasetya", role: "viewers", jabatan: "" },
+            { nip: "19980130 2022031002", username: "199801302022031002", password: "siyapp", name: "Satrio Agung", role: "viewers", jabatan: "" },
             { nip: "admin", username: "admin", password: "siyapp", name: "Administrator", role: "admin", jabatan: "Administrator Keuangan" }
         ];
 
@@ -885,7 +885,11 @@
                 document.getElementById('btnCopyReadOnly').classList.add('hidden');
                 document.getElementById('userInfoBadge').classList.remove('hidden');
                 document.getElementById('userDisplayName').textContent = "Tamu (Link)";
-                document.getElementById('userRoleBadge').textContent = "Read Only";
+                const roleBadgeEl = document.getElementById('userRoleBadge');
+                if (roleBadgeEl) {
+                    roleBadgeEl.classList.add('hidden');
+                    roleBadgeEl.textContent = "";
+                }
                 return;
             }
 
@@ -923,14 +927,22 @@
             document.getElementById("userInfoBadge").classList.remove("hidden");
             document.getElementById("userDisplayName").textContent = session.name;
             const isViewer = session.role === "viewer" || session.role === "viewers";
-            document.getElementById("userRoleBadge").textContent = isViewer ? "Viewer" : "Administrator";
+            const roleBadgeEl = document.getElementById("userRoleBadge");
 
             if (isViewer) {
                 isReadOnly = true;
+                if (roleBadgeEl) {
+                    roleBadgeEl.classList.add("hidden");
+                    roleBadgeEl.textContent = "";
+                }
                 document.getElementById('readOnlyBanner').classList.remove('hidden');
                 document.getElementById('btnTambahArsip').classList.add('hidden');
             } else {
                 isReadOnly = false;
+                if (roleBadgeEl) {
+                    roleBadgeEl.classList.remove("hidden");
+                    roleBadgeEl.textContent = "Administrator";
+                }
                 document.getElementById('readOnlyBanner').classList.add('hidden');
                 document.getElementById('btnTambahArsip').classList.remove('hidden');
             }
