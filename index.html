@@ -829,17 +829,23 @@
         let isReadOnly = false;
 
         const DEFAULT_USERS = [
-            { nip: "199810092025212003", username: "admin", password: "siyapp", name: "Administrator (199810092025212003)", role: "admin", jabatan: "Administrator Keuangan" },
-            { nip: "199801302022031002", username: "user1", password: "siyapp", name: "Pengguna (199801302022031002)", role: "viewer", jabatan: "Viewer / Monitoring" },
-            { nip: "199507132025211052", username: "user2", password: "siyapp", name: "Pengguna (199507132025211052)", role: "viewer", jabatan: "Viewer / Monitoring" },
-            { nip: "199409302022032004", username: "user3", password: "siyapp", name: "Pengguna (199409302022032004)", role: "viewer", jabatan: "Viewer / Monitoring" },
-            { nip: "200110262025211011", username: "user4", password: "siyapp", name: "Pengguna (200110262025211011)", role: "viewer", jabatan: "Viewer / Monitoring" }
+            { nip: "199810092025212003", username: "199810092025212003", password: "siyapp", name: "Arvita Oktaviana", role: "viewers", jabatan: "Viewer / Monitoring" },
+            { nip: "199507132025211052", username: "199507132025211052", password: "siyapp", name: "Wisnu Dwi Yulianto", role: "viewers", jabatan: "Viewer / Monitoring" },
+            { nip: "199409302022032004", username: "199409302022032004", password: "siyapp", name: "Ika Pratiwi", role: "viewers", jabatan: "Viewer / Monitoring" },
+            { nip: "200110262025211011", username: "200110262025211011", password: "siyapp", name: "Ihsan Prasetya", role: "viewers", jabatan: "Viewer / Monitoring" },
+            { nip: "19980130 2022031002", username: "199801302022031002", password: "siyapp", name: "Satrio Agung", role: "viewers", jabatan: "Viewer / Monitoring" },
+            { nip: "admin", username: "admin", password: "siyapp", name: "Administrator", role: "admin", jabatan: "Administrator Keuangan" }
         ];
 
         function getUsersData() {
             const stored = localStorage.getItem("anggarankuy_users_db");
             if (stored) {
-                try { return JSON.parse(stored); } catch(e) {}
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.some(u => u.name && u.name.includes("Arvita"))) {
+                        return parsed;
+                    }
+                } catch(e) {}
             }
             return DEFAULT_USERS;
         }
@@ -863,6 +869,19 @@
             if (loggedUserStr) {
                 try {
                     const session = JSON.parse(loggedUserStr);
+                    const usersList = getUsersData();
+                    const cleanNip = (session.nip || "").replace(/\s+/g, "").toLowerCase();
+                    const cleanUsername = (session.username || "").replace(/\s+/g, "").toLowerCase();
+                    const found = usersList.find(u => 
+                        (cleanNip && u.nip.replace(/\s+/g, "").toLowerCase() === cleanNip) ||
+                        (cleanUsername && u.username && u.username.replace(/\s+/g, "").toLowerCase() === cleanUsername)
+                    );
+                    if (found) {
+                        session.name = found.name;
+                        session.role = found.role;
+                        session.jabatan = found.jabatan;
+                        sessionStorage.setItem("arsip_tidar_session", JSON.stringify(session));
+                    }
                     applyUserSession(session);
                 } catch(e) {
                     showLoginOverlay();
@@ -880,9 +899,10 @@
             document.getElementById("loginOverlay").classList.add("hidden");
             document.getElementById("userInfoBadge").classList.remove("hidden");
             document.getElementById("userDisplayName").textContent = session.name;
-            document.getElementById("userRoleBadge").textContent = session.role === "admin" ? "Administrator" : "Viewer";
+            const isViewer = session.role === "viewer" || session.role === "viewers";
+            document.getElementById("userRoleBadge").textContent = isViewer ? "Viewer" : "Administrator";
 
-            if (session.role === "viewer") {
+            if (isViewer) {
                 isReadOnly = true;
                 document.getElementById('readOnlyBanner').classList.remove('hidden');
                 document.getElementById('btnTambahArsip').classList.add('hidden');
@@ -902,7 +922,7 @@
 
             const usersList = getUsersData();
             const foundUser = usersList.find(u => 
-                (u.nip.replace(/\s+/g, "").toLowerCase() === cleanInput || u.username.toLowerCase() === cleanInput) && u.password === pInput
+                (u.nip.replace(/\s+/g, "").toLowerCase() === cleanInput || (u.username && u.username.replace(/\s+/g, "").toLowerCase() === cleanInput)) && u.password === pInput
             );
 
             if (foundUser) {
