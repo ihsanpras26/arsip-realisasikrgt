@@ -2639,7 +2639,17 @@
 
         // Akses pengguna: NIP / Username dipakai login, peran diatur per modul.
         const DEFAULT_USERS = [
-            { nip: "admin", username: "admin", password: "admin123", name: "Administrator", jabatan: "Administrator", rolePengeluaran: "admin", rolePenerimaan: "admin", isSuperAdmin: true }
+            { nip: "admin", username: "admin", password: "admin123", name: "Administrator", jabatan: "Administrator", rolePengeluaran: "admin", rolePenerimaan: "admin", isSuperAdmin: true },
+            { nip: "199810092025212003", username: "199810092025212003", password: "admin123", name: "Arvita Oktaviana", jabatan: "Pengadministrasi Perkantoran", rolePengeluaran: "admin", rolePenerimaan: "admin", isSuperAdmin: false },
+            { nip: "198703132006021002", username: "198703132006021002", password: "krgt123", name: "Amirul Nugrahani, S.STP", jabatan: "PPTK", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "197304022007012008", username: "197304022007012008", password: "krgt123", name: "Ken Pratiwi Rahayu, S.Pd., S.Kom", jabatan: "Kasubag Tata Usaha", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "198810042022032001", username: "198810042022032001", password: "krgt123", name: "Anida Meta Anggriasari, S.Si", jabatan: "Analis Perkebunrayaan", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "199409302022032004", username: "199409302022032004", password: "krgt123", name: "Ika Pratiwi, S.Si", jabatan: "Bendahara Penerimaan", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "199801302022031002", username: "199801302022031002", password: "krgt123", name: "Satrio Agung Laksono, A.Md", jabatan: "Teknisi Perkebunrayaan", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "200110262025211011", username: "200110262025211011", password: "krgt123", name: "Ihsan Prasetya", jabatan: "Operator Layanan Operasional", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "199507132025211052", username: "199507132025211052", password: "krgt123", name: "Wisnu Dwi Yulianto, S.Kom", jabatan: "Penata Layanan Operasional", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false },
+            { nip: "198708242025211067", username: "198708242025211067", password: "krgt123", name: "Surya Agung", jabatan: "Operator Layanan Operasional", rolePengeluaran: "viewer", rolePenerimaan: "admin", isSuperAdmin: false },
+            { nip: "199505152018012002", username: "199505152018012002", password: "krgt123", name: "Tri Hartati, A.Md", jabatan: "Bendahara Pengeluaran", rolePengeluaran: "viewer", rolePenerimaan: "viewer", isSuperAdmin: false }
         ];
 
         function normalisasiRoleUser(u) {
@@ -2677,6 +2687,32 @@
             sessionStorage.removeItem("arsip_tidar_session");
             sessionStorage.removeItem("arsip_tidar_module");
             localStorage.setItem("anggarankuy_users_v2", "1");
+        }
+
+        // Akun dari data NIP.xlsx ditambahkan ke perangkat yang sudah memiliki data akun lama.
+        function migrasiAkunNIP() {
+            if (localStorage.getItem("anggarankuy_users_nip_xlsx_v1") === "1") return;
+            const users = getUsersData();
+            DEFAULT_USERS.forEach(akun => {
+                const nip = String(akun.nip || "").replace(/\s+/g, "").toLowerCase();
+                const idx = users.findIndex(u =>
+                    String(u.nip || "").replace(/\s+/g, "").toLowerCase() === nip
+                    || String(u.username || "").toLowerCase() === String(akun.username || "").toLowerCase()
+                );
+                if (idx < 0) {
+                    users.push(JSON.parse(JSON.stringify(akun)));
+                    return;
+                }
+                const ada = users[idx];
+                ["name", "jabatan", "rolePengeluaran", "rolePenerimaan"].forEach(k => {
+                    if (!String(ada[k] || "").trim()) ada[k] = akun[k];
+                });
+                if (!String(ada.password || "").trim()) ada.password = akun.password;
+                if (!String(ada.nip || "").trim()) ada.nip = akun.nip;
+                if (!String(ada.username || "").trim()) ada.username = akun.username;
+            });
+            saveUsersData(users);
+            localStorage.setItem("anggarankuy_users_nip_xlsx_v1", "1");
         }
 
         // Dua tingkat administrator: Super Administrator (akun admin) dan Administrator biasa.
@@ -7470,6 +7506,7 @@
 
         window.onload = function() {
             migrasiAksesPengguna();
+            migrasiAkunNIP();
             if (new URLSearchParams(window.location.search).get("resetAdmin") === "1") {
                 resetSuperAdminLogin();
             }
