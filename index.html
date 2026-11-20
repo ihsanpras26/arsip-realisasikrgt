@@ -930,6 +930,25 @@
                     </form>
                     <div id="msgTambahUser" class="hidden"></div>
                 </div>
+
+                <!-- Berpindah perangkat / multi-device -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-laptop-file text-pastel-dark"></i> Data Akses untuk Beberapa Perangkat
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Akun tersimpan di browser masing-masing perangkat dan beberapa perangkat dapat login bersamaan. Unduh data akses dari perangkat administrator, lalu impor di perangkat lain agar akun yang sama bisa dipakai.</p>
+                    <div class="flex flex-wrap items-center gap-2 mt-4">
+                        <button onclick="eksporDataAkses()" class="px-4 py-2 bg-pastel-dark hover:bg-pastel-emerald text-white font-semibold rounded-lg text-xs transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-file-arrow-down"></i> Unduh Data Akses (.json)
+                        </button>
+                        <label class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg text-xs transition-colors flex items-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-file-arrow-up"></i> Impor Data Akses (.json)
+                            <input type="file" id="imporDataAksesInput" accept=".json,application/json" onchange="imporDataAkses(event)" class="hidden">
+                        </label>
+                    </div>
+                    <div id="msgDataAkses" class="hidden"></div>
+                </div>
+
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="bg-pastel-dark text-white px-4 py-3 flex items-center justify-between">
                         <h3 class="font-bold text-sm flex items-center gap-2">
@@ -2721,6 +2740,105 @@
 
         function saveUsersData(users) {
             localStorage.setItem("anggarankuy_users_db", JSON.stringify(users));
+        }
+
+        // Data akun dapat dipindahkan antar-perangkat. Sesi login tetap per-browser,
+        // sehingga banyak perangkat bisa login bersamaan dengan akun yang sama.
+        function eksporDataAkses() {
+            if (!isSuperAdminSession()) return;
+            const pengguna = getUsersData().map(u => ({
+                nip: String(u.nip || ""),
+                username: String(u.username || ""),
+                password: String(u.password || ""),
+                name: String(u.name || ""),
+                jabatan: String(u.jabatan || ""),
+                rolePengeluaran: u.rolePengeluaran === "admin" ? "admin" : "viewer",
+                rolePenerimaan: u.rolePenerimaan === "admin" ? "admin" : "viewer",
+                isSuperAdmin: u.isSuperAdmin === true
+            }));
+            const isi = {
+                format: "anggarankuy-akses",
+                versi: 1,
+                dieksporPada: new Date().toISOString(),
+                pengguna
+            };
+            try {
+                const blob = new Blob([JSON.stringify(isi, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `akses-pengguna-gunung-tidar-${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showPengaturanMsg("msgDataAkses", `${pengguna.length} akun berhasil diunduh. Impor berkas ini di perangkat lain agar akun yang sama bisa login.`, "success");
+            } catch (e) {
+                showPengaturanMsg("msgDataAkses", "Gagal mengunduh data akses: " + e.message, "error");
+            }
+        }
+
+        function imporDataAkses(event) {
+            if (!isSuperAdminSession()) return;
+            const input = event?.target;
+            const file = input?.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const parsed = JSON.parse(String(e.target.result || ""));
+                    const daftar = Array.isArray(parsed) ? parsed : parsed?.pengguna;
+                    if (!Array.isArray(daftar) || daftar.length === 0) throw new Error("Berkas tidak berisi daftar akun.");
+
+                    const users = getUsersData();
+                    let ditambah = 0, diperbarui = 0;
+                    daftar.forEach(u => {
+                        if (!u || typeof u !== "object") return;
+                        const nip = String(u.nip || "").trim();
+                        const username = String(u.username || nip).trim().toLowerCase();
+                        if (!nip && !username) return;
+                        const dataBersih = normalisasiRoleUser({
+                            nip: nip || username,
+                            username: username || nip,
+                            password: String(u.password || ""),
+                            name: String(u.name || username),
+                            jabatan: String(u.jabatan || "-"),
+                            rolePengeluaran: u.rolePengeluaran,
+                            rolePenerimaan: u.rolePenerimaan
+                        });
+                        dataBersih.isSuperAdmin = username === "admin" || String(u.nip || "").toLowerCase() === "admin";
+                        if (!dataBersih.password) return;
+                        const idx = users.findIndex(x =>
+                            String(x.nip || "").replace(/\s+/g, "").toLowerCase() === nip.replace(/\s+/g, "").toLowerCase()
+                            || String(x.username || "").toLowerCase() === username
+                        );
+                        if (idx >= 0) {
+                            users[idx] = { ...users[idx], ...dataBersih };
+                            diperbarui++;
+                        } else {
+                            users.push(dataBersih);
+                            ditambah++;
+                        }
+                    });
+                    if (!users.some(u => u.isSuperAdmin === true)) {
+                        const admin = users.find(u => String(u.username || "").toLowerCase() === "admin" || String(u.nip || "").toLowerCase() === "admin");
+                        if (admin) admin.isSuperAdmin = true;
+                    }
+                    saveUsersData(users);
+                    localStorage.setItem("anggarankuy_users_v2", "1");
+                    localStorage.setItem("anggarankuy_super_admin_v1", "1");
+                    renderUsersTable();
+                    showPengaturanMsg("msgDataAkses", `Impor selesai: ${ditambah} akun ditambahkan, ${diperbarui} akun diperbarui. Akun kini bisa login dari perangkat lain.`, "success");
+                } catch (err) {
+                    showPengaturanMsg("msgDataAkses", "Gagal mengimpor data akses: " + err.message, "error");
+                }
+                if (input) input.value = "";
+            };
+            reader.onerror = function () {
+                showPengaturanMsg("msgDataAkses", "Gagal membaca berkas data akses.", "error");
+                if (input) input.value = "";
+            };
+            reader.readAsText(file);
         }
 
         function getSessionUser() {
